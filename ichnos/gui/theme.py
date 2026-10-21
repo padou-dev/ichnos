@@ -12,7 +12,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from PySide6.QtCore import QFileSystemWatcher, QObject, Qt, QTimer, Signal
-from PySide6.QtGui import QColor, QFont, QPalette
+from PySide6.QtGui import QColor, QFont, QFontDatabase, QPalette
 from PySide6.QtWidgets import QApplication
 
 from ichnos.theme_colors import (
@@ -33,9 +33,30 @@ FONT_FAMILIES = [
     "Consolas",
     "DejaVu Sans Mono",
     "Menlo",
-    "monospace",
 ]
 FONT_POINT_SIZE = 10
+FONT_CLASSES = (
+    "QAbstractItemView",
+    "QHeaderView",
+    "QMenu",
+    "QMenuBar",
+    "QStatusBar",
+    "QToolTip",
+    "QMessageBox",
+    "QLineEdit",
+    "QPushButton",
+    "QToolButton",
+    "QLabel",
+)
+
+
+def monospace_family() -> str:
+    """The first installed font from FONT_FAMILIES, else the system's fixed-width font."""
+    installed = set(QFontDatabase.families())
+    for family in FONT_FAMILIES:
+        if family in installed:
+            return family
+    return QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont).family()
 
 
 def system_prefers_dark(app: QApplication, fallback_palette: QPalette) -> bool:
@@ -94,16 +115,19 @@ class ThemeManager(QObject):
 
         self._app.setStyle("Fusion")
         self._app.setPalette(self._palette_for(colors))
-        self._app.setFont(self._font())
+        font = self._font()
+        self._app.setFont(font)
+        # Some platforms (Windows especially) give lists, menus and headers
+        # their own system font, which a plain setFont doesn't replace.
+        for widget_class in FONT_CLASSES:
+            self._app.setFont(font, widget_class)
         self._app.setStyleSheet(self._stylesheet(colors))
         self.changed.emit()
 
     @staticmethod
     def _font() -> QFont:
-        font = QFont()
-        font.setFamilies(FONT_FAMILIES)
+        font = QFont(monospace_family(), FONT_POINT_SIZE)
         font.setStyleHint(QFont.StyleHint.Monospace)
-        font.setPointSize(FONT_POINT_SIZE)
         return font
 
     @staticmethod
@@ -143,7 +167,11 @@ class ThemeManager(QObject):
     @staticmethod
     def _stylesheet(c: ThemeColors) -> str:
         row_line = mix(c.panel, c.border, 0.5)
+        # Setting the font here too makes it reach every widget, including
+        # ones the platform gives its own font (lists and menus on Windows).
+        family = monospace_family().replace('"', "")
         return f"""
+            QWidget {{ font-family: "{family}"; font-size: {FONT_POINT_SIZE}pt; }}
             QToolBar {{
                 background: {c.panel}; border: none; border-bottom: 1px solid {c.border};
                 padding: 6px 8px; spacing: 6px;
@@ -204,6 +232,7 @@ class ThemeManager(QObject):
             }}
             QLabel#appName {{ color: {c.accent}; font-weight: bold; font-size: 15px; }}
             QLabel#dim {{ color: {c.dim}; }}
+            QLabel#statNumber {{ font-size: 16pt; font-weight: bold; }}
             QFrame#note {{ border: 1px solid {c.border}; border-radius: 4px; }}
             QFrame#stat {{ background: {c.surface}; border-radius: 4px; }}
             QToolTip {{

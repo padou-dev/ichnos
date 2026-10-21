@@ -173,3 +173,15 @@ def test_groups_with_nothing_removable_start_collapsed(window: MainWindow) -> No
     assert "kept" in jfif.text(2)
     window.file_list.focus_path(window.file_list.paths()[0])
     assert tag_item(window, "GPS:GPSLatitude").parent().isExpanded()
+
+
+def test_tables_and_menus_use_the_ichnos_font(window: MainWindow, app) -> None:
+    expected = app.font().family()
+    assert window.tag_tree.font().family() == expected
+    assert window.file_list.font().family() == expected
+    assert window.menuBar().font().family() == expected
+    assert tag_item(window, "IFD0:Make").font(1).family() == expected
+
+
+def test_status_bar_uses_the_ichnos_font(window: MainWindow, app) -> None:
+    assert window.statusBar().font().family() == app.font().family()

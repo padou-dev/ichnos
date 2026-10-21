@@ -46,11 +46,7 @@ class _Stat(QFrame):
         top = QLabel(caption)
         top.setObjectName("dim")
         self.number = QLabel("–")
-        font = self.number.font()
-        if font.pointSizeF() > 0:
-            font.setPointSizeF(font.pointSizeF() * 1.6)
-        font.setBold(True)
-        self.number.setFont(font)
+        self.number.setObjectName("statNumber")  # size and weight come from the theme
         bottom = QLabel("tags")
         bottom.setObjectName("dim")
         for widget in (top, self.number, bottom):

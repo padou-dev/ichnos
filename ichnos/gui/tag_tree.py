@@ -99,9 +99,8 @@ class TagTree(QTreeWidget):
                 group.setExpanded(True)
             outer.setExpanded(False)
 
-    @staticmethod
-    def _style_group(item: QTreeWidgetItem) -> None:
-        font = QFont(item.font(COL_TAG))
+    def _style_group(self, item: QTreeWidgetItem) -> None:
+        font = QFont(self.font())  # an item's own font() is the system default, not ours
         font.setBold(True)
         item.setFont(COL_TAG, font)
         item.setFlags(Qt.ItemFlag.ItemIsEnabled)
@@ -152,7 +151,7 @@ class TagTree(QTreeWidget):
         for item, tag in self._tag_items():
             removed = tag.removal_target in plan.removals
             edit = plan.edits.get((tag.group, tag.name))
-            font = QFont(item.font(COL_VALUE))
+            font = QFont(self.font())
             font.setStrikeOut(removed)
             item.setFont(COL_VALUE, font)
 
