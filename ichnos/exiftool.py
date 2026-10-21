@@ -16,6 +16,16 @@ from dataclasses import dataclass
 
 EXIFTOOL_ENV = "ICHNOS_EXIFTOOL"
 
+# Places exiftool is installed but which may not be on PATH. Arch Linux puts
+# it in /usr/bin/vendor_perl, which is only added to PATH by login shells, so
+# apps started from a launcher, a service or a container may not see it.
+KNOWN_LOCATIONS = (
+    "/usr/bin/vendor_perl/exiftool",
+    "/usr/bin/site_perl/exiftool",
+    "/usr/local/bin/exiftool",
+    "/opt/homebrew/bin/exiftool",
+)
+
 
 class IchnosError(Exception):
     """Base class for errors that Ichnos reports to the user."""
@@ -61,9 +71,12 @@ def find_exiftool() -> str:
     if override:
         return override
     found = shutil.which("exiftool")
-    if found is None:
-        raise ExifToolNotFoundError()
-    return found
+    if found is not None:
+        return found
+    for location in KNOWN_LOCATIONS:
+        if os.path.isfile(location) and os.access(location, os.X_OK):
+            return location
+    raise ExifToolNotFoundError()
 
 
 def _argfile_line(arg: str) -> str:

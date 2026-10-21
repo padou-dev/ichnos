@@ -6,6 +6,7 @@ copies one into a temporary folder and writes known, fake tags into it with
 exiftool, so the tests never depend on anyone's real photos.
 """
 
+import os
 import shutil
 from pathlib import Path
 
@@ -18,9 +19,16 @@ DATA = Path(__file__).parent / "data"
 
 @pytest.fixture(autouse=True)
 def _require_exiftool() -> None:
+    """Skip tests that need exiftool when it's missing.
+
+    In CI, ICHNOS_REQUIRE_EXIFTOOL=1 turns the skip into a failure, so a broken
+    setup can't pass by quietly skipping every test.
+    """
     try:
         find_exiftool()
     except ExifToolNotFoundError:
+        if os.environ.get("ICHNOS_REQUIRE_EXIFTOOL"):
+            pytest.fail("exiftool is required but was not found")
         pytest.skip("exiftool is not installed")
 
 

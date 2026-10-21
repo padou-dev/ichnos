@@ -8,10 +8,13 @@ jobs:
   arch-linux:
     runs-on: ubuntu-latest
     container: archlinux:latest
+    env:
+      # Fail, rather than skip, if exiftool can't be found.
+      ICHNOS_REQUIRE_EXIFTOOL: "1"
     steps:
       - name: Install dependencies
         run: pacman -Syu --noconfirm --needed git python pyside6 perl-image-exiftool python-pytest python-build python-installer python-setuptools python-wheel
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Run tests
         run: python -m pytest -v
       - name: Build the package
