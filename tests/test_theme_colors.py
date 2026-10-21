@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 """Tests for reading Omarchy theme colours. These need no exiftool and no Qt."""
 
+import sys
 from pathlib import Path
 
 import pytest
@@ -71,3 +72,48 @@ def test_no_theme_folder_means_no_colours(tmp_path: Path) -> None:
 def test_theme_dir_can_be_overridden(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("ICHNOS_THEME_DIR", str(tmp_path))
     assert omarchy_theme_dir() == tmp_path
+
+
+# A real theme file from Omarchy 4 (catppuccin).
+OMARCHY4_COLORS = """mode = "dark"
+
+accent = "#89b4fa"
+selection = "#45475a"
+muted = "#585b70"
+
+background = "#1e1e2e"
+dark_background = "#161622"
+darker_background = "#101019"
+lighter_background = "#313244"
+
+foreground = "#cdd6f4"
+dark_foreground = "#6c7086"
+
+red = "#f38ba8"
+yellow = "#f9e2af"
+orange = "#f6b6ab"
+green = "#a6e3a1"
+blue = "#89b4fa"
+"""
+
+
+def test_reads_omarchy4_colors_toml(tmp_path: Path) -> None:
+    (tmp_path / "colors.toml").write_text(OMARCHY4_COLORS)
+    colors = load_theme_colors(tmp_path)
+    assert colors.background == "#1e1e2e"
+    assert colors.accent == "#89b4fa"
+    assert colors.warning == "#f6b6ab"
+    assert colors.panel == "#161622"
+    assert colors.surface == "#313244"
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="Omarchy is Linux only")
+def test_finds_the_omarchy4_theme_first(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("ICHNOS_THEME_DIR", raising=False)
+    monkeypatch.setenv("HOME", str(tmp_path))
+    old = tmp_path / ".config/omarchy/current/theme"
+    new = tmp_path / ".local/state/omarchy/current/theme"
+    old.mkdir(parents=True)
+    assert omarchy_theme_dir() == old
+    new.mkdir(parents=True)
+    assert omarchy_theme_dir() == new

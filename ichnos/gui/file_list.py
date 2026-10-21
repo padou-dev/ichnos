@@ -26,6 +26,8 @@ class FileList(QListWidget):
         self.setIconSize(THUMB_SIZE)
         self.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
         self.setSpacing(2)
+        self.setTextElideMode(Qt.TextElideMode.ElideMiddle)  # long names: "screen…_08.png"
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.customContextMenuRequested.connect(self._context_menu)
         self.currentItemChanged.connect(self._on_current_changed)

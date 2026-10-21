@@ -1,9 +1,10 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 """Read colours from an Omarchy theme. Pure Python, no Qt, so it can be tested.
 
-Omarchy keeps the active theme in ~/.config/omarchy/current/theme. Theme folders
-contain config files for many programs; Ichnos reads whichever it finds first:
-colors.toml, then the Alacritty, Ghostty or Kitty terminal colours.
+Omarchy 4 keeps the active theme in ~/.local/state/omarchy/current/theme
+(Omarchy 3 used ~/.config/omarchy/current/theme; both are checked). Every
+Omarchy 4 theme has a colors.toml with named colours. For older or third-party
+themes, Ichnos falls back to the Alacritty, Ghostty or Kitty terminal colours.
 """
 
 from __future__ import annotations
@@ -16,6 +17,10 @@ from dataclasses import dataclass
 from pathlib import Path
 
 THEME_DIR_ENV = "ICHNOS_THEME_DIR"
+OMARCHY_THEME_DIRS = (
+    ".local/state/omarchy/current/theme",  # Omarchy 4
+    ".config/omarchy/current/theme",  # Omarchy 3
+)
 HEX = re.compile(r"^(?:#|0x)?([0-9a-fA-F]{6})$")
 
 
@@ -28,6 +33,8 @@ class ThemeColors:
     success: str
     error: str
     source: str = ""
+    panel_color: str = ""  # used instead of the calculated shade when a theme names one
+    surface_color: str = ""
 
     @property
     def is_dark(self) -> bool:
@@ -36,12 +43,16 @@ class ThemeColors:
     @property
     def panel(self) -> str:
         """Lists and tables: a little darker in dark themes, lighter in light ones."""
+        if self.panel_color:
+            return self.panel_color
         if self.is_dark:
             return mix(self.background, "#000000", 0.18)
         return mix(self.background, "#ffffff", 0.6)
 
     @property
     def surface(self) -> str:
+        if self.surface_color:
+            return self.surface_color
         return mix(self.background, self.foreground, 0.08)
 
     @property
@@ -112,10 +123,12 @@ def _build(found: dict[str, str], source: str) -> ThemeColors | None:
         background=background,
         foreground=foreground,
         accent=found.get("accent") or found.get("color4") or found.get("blue") or foreground,
-        warning=found.get("color3") or found.get("yellow") or "#e0a040",
+        warning=found.get("orange") or found.get("color3") or found.get("yellow") or "#e0a040",
         success=found.get("color2") or found.get("green") or "#60b060",
         error=found.get("color1") or found.get("red") or "#e05050",
         source=source,
+        panel_color=found.get("dark_background", ""),
+        surface_color=found.get("lighter_background", ""),
     )
 
 
@@ -186,8 +199,11 @@ def omarchy_theme_dir() -> Path | None:
         return Path(override)
     if sys.platform in ("win32", "darwin"):
         return None
-    folder = Path.home() / ".config" / "omarchy" / "current" / "theme"
-    return folder if folder.is_dir() else None
+    for folder in OMARCHY_THEME_DIRS:
+        path = Path.home() / folder
+        if path.is_dir():
+            return path
+    return None
 
 
 def load_theme_colors(folder: Path | None) -> ThemeColors | None:
