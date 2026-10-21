@@ -155,3 +155,21 @@ def test_omarchy_theme_is_applied(app, tmp_path: Path, monkeypatch: pytest.Monke
     finally:
         monkeypatch.setenv("ICHNOS_THEME_DIR", str(tmp_path / "none"))
         theme.apply()
+
+
+def test_ichnos_palette_is_used_without_omarchy(window: MainWindow, app) -> None:
+    from ichnos.theme_colors import DEFAULT_DARK, DEFAULT_LIGHT
+
+    assert not window.theme.from_omarchy
+    background = app.palette().color(app.palette().ColorRole.Window).name()
+    assert background in (DEFAULT_DARK.background, DEFAULT_LIGHT.background)
+
+
+def test_groups_with_nothing_removable_start_collapsed(window: MainWindow) -> None:
+    window.file_list.focus_path(window.file_list.paths()[1])  # plain.jpg: only JFIF
+    jfif = window.tag_tree.topLevelItem(0)
+    assert jfif.text(0) == "JFIF"
+    assert not jfif.isExpanded()
+    assert "kept" in jfif.text(2)
+    window.file_list.focus_path(window.file_list.paths()[0])
+    assert tag_item(window, "GPS:GPSLatitude").parent().isExpanded()

@@ -37,7 +37,8 @@ class TagTree(QTreeWidget):
         header.setSectionResizeMode(COL_TAG, QHeaderView.ResizeMode.Interactive)
         header.setSectionResizeMode(COL_VALUE, QHeaderView.ResizeMode.Stretch)
         header.setSectionResizeMode(COL_STATUS, QHeaderView.ResizeMode.ResizeToContents)
-        self.setColumnWidth(COL_TAG, 240)
+        self.setColumnWidth(COL_TAG, 260)
+        self.setIndentation(16)
 
         self._colors: ThemeColors | None = None
         self._meta: FileMetadata | None = None
@@ -78,7 +79,9 @@ class TagTree(QTreeWidget):
             self._style_group(group)
             for tag in tags:
                 self._add_tag(group, tag)
-            group.setExpanded(True)
+            # Groups with nothing removable (colour profile, image structure)
+            # start collapsed, so the table opens on what can actually change.
+            group.setExpanded(any(t.category is Category.METADATA for t in tags))
 
         if file_info:
             outer = QTreeWidgetItem(self, [FILE_INFO_LABEL, "", ""])
@@ -196,6 +199,8 @@ class TagTree(QTreeWidget):
         removable = [t for t in tags if t.category is Category.METADATA]
         removed = [t for t in removable if t.removal_target in self._plan.removals]
         c = self._colors
+        for column in (COL_TAG, COL_VALUE, COL_STATUS):
+            group.setBackground(column, QBrush(QColor(c.surface)))
         if tags[0].category is Category.FILE_INFO:
             group.setText(COL_STATUS, "not in the image")
             group.setForeground(COL_STATUS, QBrush(QColor(c.dim)))
@@ -211,9 +216,14 @@ class TagTree(QTreeWidget):
                 state = Qt.CheckState.PartiallyChecked
             group.setCheckState(COL_TAG, state)
         noun = "tag" if len(tags) == 1 else "tags"
-        status = f"{len(removed)} of {len(tags)} removed" if removed else f"{len(tags)} {noun}"
+        if removed:
+            status, color = f"{len(removed)} of {len(tags)} removed", c.warning
+        elif not removable:
+            status, color = f"{len(tags)} {noun} · kept", c.success
+        else:
+            status, color = f"{len(tags)} {noun}", c.dim
         group.setText(COL_STATUS, status)
-        group.setForeground(COL_STATUS, QBrush(QColor(c.warning if removed else c.dim)))
+        group.setForeground(COL_STATUS, QBrush(QColor(color)))
         group.setForeground(COL_TAG, QBrush(QColor(c.accent)))
 
     # Filtering -------------------------------------------------------------

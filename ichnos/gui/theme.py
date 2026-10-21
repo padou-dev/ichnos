@@ -1,52 +1,62 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
-"""Apply colours to the app: the Omarchy theme when there is one, else the system's.
+"""Apply Ichnos's look: colours, fonts and widget styling.
 
-On Omarchy the theme is also watched, so switching themes recolours Ichnos
-while it is running.
+Colours come from the active Omarchy theme when there is one, and from
+Ichnos's own dark or light palette otherwise (following the system's
+dark/light setting). Both are watched, so switching an Omarchy theme or the
+system colour scheme restyles Ichnos while it is running.
 """
 
 from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import QFileSystemWatcher, QObject, QTimer, Signal
-from PySide6.QtGui import QColor, QPalette
+from PySide6.QtCore import QFileSystemWatcher, QObject, Qt, QTimer, Signal
+from PySide6.QtGui import QColor, QFont, QPalette
 from PySide6.QtWidgets import QApplication
 
-from ichnos.theme_colors import ThemeColors, load_theme_colors, omarchy_theme_dir
+from ichnos.theme_colors import (
+    DEFAULT_DARK,
+    DEFAULT_LIGHT,
+    ThemeColors,
+    load_theme_colors,
+    mix,
+    omarchy_theme_dir,
+)
+
+# Monospace, like the design mockup. The first one installed wins.
+FONT_FAMILIES = [
+    "JetBrainsMono Nerd Font",
+    "JetBrains Mono",
+    "Cascadia Mono",
+    "Cascadia Code",
+    "Consolas",
+    "DejaVu Sans Mono",
+    "Menlo",
+    "monospace",
+]
+FONT_POINT_SIZE = 10
 
 
-def _hex(color: QColor) -> str:
-    return color.name(QColor.NameFormat.HexRgb)
-
-
-def colors_from_palette(palette: QPalette) -> ThemeColors:
-    """Fallback colours that sit well with the system's own light or dark style."""
-    background = _hex(palette.color(QPalette.ColorRole.Window))
-    foreground = _hex(palette.color(QPalette.ColorRole.WindowText))
-    dark = QColor(background).lightnessF() < 0.5
-    return ThemeColors(
-        background=background,
-        foreground=foreground,
-        accent=_hex(palette.color(QPalette.ColorRole.Highlight)),
-        warning="#f0a050" if dark else "#a85a00",
-        success="#70c070" if dark else "#2e7d32",
-        error="#f07070" if dark else "#c62828",
-        source="system",
-    )
+def system_prefers_dark(app: QApplication, fallback_palette: QPalette) -> bool:
+    scheme = app.styleHints().colorScheme()
+    if scheme == Qt.ColorScheme.Dark:
+        return True
+    if scheme == Qt.ColorScheme.Light:
+        return False
+    return fallback_palette.color(QPalette.ColorRole.Window).lightnessF() < 0.5
 
 
 class ThemeManager(QObject):
-    """Owns the current colours and re-applies them when the Omarchy theme changes."""
+    """Owns the current colours and re-applies them when a theme changes."""
 
     changed = Signal()
 
     def __init__(self, app: QApplication) -> None:
         super().__init__(app)
         self._app = app
-        self._system_style = app.style().name()
-        self._system_palette = QPalette(app.palette())
-        self.colors = colors_from_palette(self._system_palette)
+        self._initial_palette = QPalette(app.palette())
+        self.colors: ThemeColors = DEFAULT_DARK
         self.from_omarchy = False
 
         self._watcher = QFileSystemWatcher(self)
@@ -56,6 +66,7 @@ class ThemeManager(QObject):
         self._debounce.timeout.connect(self.apply)
         self._watcher.directoryChanged.connect(lambda _path: self._debounce.start())
         self._watcher.fileChanged.connect(lambda _path: self._debounce.start())
+        app.styleHints().colorSchemeChanged.connect(lambda _scheme: self._debounce.start())
 
     def _watch(self, folder: Path | None) -> None:
         old = self._watcher.directories() + self._watcher.files()
@@ -75,19 +86,25 @@ class ThemeManager(QObject):
         colors = load_theme_colors(folder)
         self._watch(folder)
 
+        self.from_omarchy = colors is not None
         if colors is None:
-            if self.from_omarchy:  # only undo what we changed
-                self._app.setStyle(self._system_style)
-                self._app.setPalette(self._system_palette)
-            self.from_omarchy = False
-            self.colors = colors_from_palette(self._app.palette())
-        else:
-            self.from_omarchy = True
-            self._app.setStyle("Fusion")
-            self._app.setPalette(self._palette_for(colors))
-            self.colors = colors
-        self._app.setStyleSheet(self._stylesheet(self.colors))
+            dark = system_prefers_dark(self._app, self._initial_palette)
+            colors = DEFAULT_DARK if dark else DEFAULT_LIGHT
+        self.colors = colors
+
+        self._app.setStyle("Fusion")
+        self._app.setPalette(self._palette_for(colors))
+        self._app.setFont(self._font())
+        self._app.setStyleSheet(self._stylesheet(colors))
         self.changed.emit()
+
+    @staticmethod
+    def _font() -> QFont:
+        font = QFont()
+        font.setFamilies(FONT_FAMILIES)
+        font.setStyleHint(QFont.StyleHint.Monospace)
+        font.setPointSize(FONT_POINT_SIZE)
+        return font
 
     @staticmethod
     def _palette_for(c: ThemeColors) -> QPalette:
@@ -107,8 +124,11 @@ class ThemeManager(QObject):
             QPalette.ColorRole.PlaceholderText: c.dim,
             QPalette.ColorRole.Link: c.accent,
             QPalette.ColorRole.BrightText: c.error,
+            QPalette.ColorRole.Light: c.border,
+            QPalette.ColorRole.Midlight: c.border,
             QPalette.ColorRole.Mid: c.border,
             QPalette.ColorRole.Dark: c.panel,
+            QPalette.ColorRole.Shadow: c.panel,
         }
         for role, value in roles.items():
             palette.setColor(role, QColor(value))
@@ -122,25 +142,72 @@ class ThemeManager(QObject):
 
     @staticmethod
     def _stylesheet(c: ThemeColors) -> str:
+        row_line = mix(c.panel, c.border, 0.5)
         return f"""
+            QToolBar {{
+                background: {c.panel}; border: none; border-bottom: 1px solid {c.border};
+                padding: 6px 8px; spacing: 6px;
+            }}
+            QMenuBar {{ background: {c.background}; }}
+            QMenuBar::item {{ padding: 4px 10px; }}
+            QMenuBar::item:selected {{ background: {c.surface}; }}
+            QMenu {{ background: {c.panel}; border: 1px solid {c.border}; padding: 4px; }}
+            QMenu::item {{ padding: 5px 24px 5px 12px; }}
+            QMenu::item:selected {{ background: {c.accent}; color: {c.accent_text}; }}
+            QMenu::separator {{ height: 1px; background: {c.border}; margin: 4px 8px; }}
+            QStatusBar {{ background: {c.panel}; border-top: 1px solid {c.border}; }}
+            QStatusBar QLabel {{ padding: 2px 8px; }}
+            QSplitter::handle {{ background: {c.border}; }}
+            QSplitter::handle:horizontal {{ width: 1px; }}
+
+            QTreeView, QListView, QTextBrowser {{
+                background: {c.panel}; border: 1px solid {c.border}; border-radius: 4px;
+                outline: 0;
+            }}
+            QTreeView::item {{ padding: 4px 2px; border-bottom: 1px solid {row_line}; }}
+            QTreeView::item:selected {{ background: {c.surface}; }}
+            QListView::item {{ padding: 6px 4px; margin: 1px 2px; border-radius: 3px; }}
+            QListView::item:selected {{ background: {c.surface}; color: {c.foreground}; }}
+            QHeaderView::section {{
+                background: {c.panel}; color: {c.dim}; border: none;
+                border-bottom: 1px solid {c.border}; padding: 6px 8px;
+            }}
+
+            QLineEdit {{
+                background: {c.surface}; border: 1px solid {c.border}; border-radius: 3px;
+                padding: 5px 8px; selection-background-color: {c.accent};
+            }}
+            QLineEdit:focus {{ border-color: {c.accent}; }}
+            QPushButton {{
+                background: {c.surface}; border: 1px solid {c.border}; border-radius: 4px;
+                padding: 6px 14px;
+            }}
+            QPushButton:hover {{ border-color: {c.accent}; }}
+            QPushButton:disabled {{ color: {c.dim}; }}
             QPushButton#primary {{
                 background: {c.accent}; color: {c.accent_text};
-                border: none; border-radius: 4px; padding: 6px 16px; font-weight: bold;
+                border: none; padding: 7px 16px; font-weight: bold;
             }}
             QPushButton#primary:disabled {{ background: {c.border}; color: {c.dim}; }}
             QToolButton#preset {{
-                padding: 5px 12px; border: 1px solid {c.border}; background: {c.surface};
+                padding: 6px 12px; border: 1px solid {c.border}; background: {c.surface};
             }}
+            QToolButton#preset:hover {{ border-color: {c.accent}; }}
             QToolButton#preset:checked {{
                 background: {c.accent}; color: {c.accent_text}; border-color: {c.accent};
                 font-weight: bold;
             }}
             QToolButton#preset:disabled {{ color: {c.dim}; }}
+
             QLabel#heading {{
-                color: {c.accent}; font-weight: bold; letter-spacing: 1px;
+                color: {c.accent}; font-weight: bold; letter-spacing: 1px; font-size: 11px;
             }}
             QLabel#appName {{ color: {c.accent}; font-weight: bold; font-size: 15px; }}
             QLabel#dim {{ color: {c.dim}; }}
             QFrame#note {{ border: 1px solid {c.border}; border-radius: 4px; }}
             QFrame#stat {{ background: {c.surface}; border-radius: 4px; }}
+            QToolTip {{
+                background: {c.surface}; color: {c.foreground}; border: 1px solid {c.border};
+                padding: 4px;
+            }}
         """

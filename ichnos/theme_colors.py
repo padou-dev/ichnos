@@ -35,7 +35,10 @@ class ThemeColors:
 
     @property
     def panel(self) -> str:
-        return mix(self.background, "#000000", 0.18 if self.is_dark else 0.04)
+        """Lists and tables: a little darker in dark themes, lighter in light ones."""
+        if self.is_dark:
+            return mix(self.background, "#000000", 0.18)
+        return mix(self.background, "#ffffff", 0.6)
 
     @property
     def surface(self) -> str:
@@ -52,6 +55,28 @@ class ThemeColors:
     @property
     def accent_text(self) -> str:
         return "#000000" if luminance(self.accent) > 0.5 else "#ffffff"
+
+
+# Ichnos's own colours, used when there is no Omarchy theme. The dark one is
+# the palette from the original design mockup.
+DEFAULT_DARK = ThemeColors(
+    background="#1a1b26",
+    foreground="#c0caf5",
+    accent="#7aa2f7",
+    warning="#ff9e64",
+    success="#9ece6a",
+    error="#f7768e",
+    source="Ichnos dark",
+)
+DEFAULT_LIGHT = ThemeColors(
+    background="#eef0f5",
+    foreground="#24283b",
+    accent="#2e59c7",
+    warning="#a84f00",
+    success="#2e7d32",
+    error="#c62828",
+    source="Ichnos light",
+)
 
 
 def normalise_hex(value: object) -> str | None:
