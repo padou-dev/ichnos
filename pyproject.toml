@@ -1,0 +1,53 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ichnos"
+dynamic = ["version"]
+description = "View, edit and remove photo metadata, safely"
+readme = "README.md"
+license = "GPL-3.0-or-later"
+license-files = ["LICENSE"]
+authors = [{ name = "p@nos", email = "padou.dev@proton.me" }]
+requires-python = ">=3.11"
+dependencies = ["PySide6>=6.5"]
+keywords = ["exif", "metadata", "privacy", "gps", "photo", "exiftool"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: X11 Applications :: Qt",
+    "Intended Audience :: End Users/Desktop",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: Microsoft :: Windows",
+    "Programming Language :: Python :: 3",
+    "Topic :: Multimedia :: Graphics",
+    "Topic :: Security",
+]
+
+[project.urls]
+Homepage = "https://github.com/padou-dev/ichnos"
+Issues = "https://github.com/padou-dev/ichnos/issues"
+
+[project.scripts]
+ichnos = "ichnos.__main__:main"
+
+[tool.setuptools.dynamic]
+version = { attr = "ichnos.__version__" }
+
+[tool.setuptools.packages.find]
+include = ["ichnos*"]
+
+[tool.setuptools.package-data]
+ichnos = ["resources/*.svg"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "N", "SIM"]
+ignore = ["E501"]  # the formatter wraps code; long strings are left as they are

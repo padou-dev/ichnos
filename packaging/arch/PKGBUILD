@@ -1,0 +1,36 @@
+# Maintainer: p@nos <padou.dev@proton.me>
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+pkgname=ichnos
+pkgver=0.1.0
+pkgrel=1
+pkgdesc='View, edit and remove photo metadata, safely'
+arch=('any')
+url='https://github.com/padou-dev/ichnos'
+license=('GPL-3.0-or-later')
+depends=('python' 'pyside6' 'perl-image-exiftool')
+makedepends=('python-build' 'python-installer' 'python-setuptools' 'python-wheel')
+checkdepends=('python-pytest')
+source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/tags/v$pkgver.tar.gz")
+sha256sums=('SKIP')  # replace with the real checksum: run `updpkgsums` after tagging
+
+build() {
+  cd "$pkgname-$pkgver"
+  python -m build --wheel --no-isolation
+}
+
+check() {
+  cd "$pkgname-$pkgver"
+  python -m pytest
+}
+
+package() {
+  cd "$pkgname-$pkgver"
+  python -m installer --destdir="$pkgdir" dist/*.whl
+
+  local app_id=io.github.padou_dev.Ichnos
+  install -Dm644 "data/$app_id.desktop" "$pkgdir/usr/share/applications/$app_id.desktop"
+  install -Dm644 "data/$app_id.metainfo.xml" "$pkgdir/usr/share/metainfo/$app_id.metainfo.xml"
+  install -Dm644 "ichnos/resources/$app_id.svg" "$pkgdir/usr/share/icons/hicolor/scalable/apps/$app_id.svg"
+  install -Dm644 data/ichnos.1 "$pkgdir/usr/share/man/man1/ichnos.1"
+}

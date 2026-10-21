@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- SPDX-License-Identifier: CC0-1.0 -->
+<component type="desktop-application">
+  <id>io.github.padou_dev.Ichnos</id>
+  <name>Ichnos</name>
+  <summary>View, edit and remove photo metadata, safely</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <developer id="io.github.padou_dev">
+    <name>p@nos</name>
+  </developer>
+  <description>
+    <p>
+      Photos carry traces of where, when and with what they were taken. Ichnos
+      shows you every one of them and removes the ones you choose, without ever
+      touching your original files.
+    </p>
+    <ul>
+      <li>See all metadata, grouped by where it is stored: EXIF, GPS, XMP, IPTC, maker notes</li>
+      <li>Presets: remove only location, make photos share-safe, or strip everything</li>
+      <li>Tick or untick any individual tag, and edit artist, copyright, dates and descriptions</li>
+      <li>Work on whole folders at once</li>
+      <li>Writes cleaned copies and checks each one afterwards; originals are never modified</li>
+      <li>Keeps orientation and colour profiles, so photos still look right</li>
+      <li>A command-line mode for scripts: ichnos strip --preset share-safe *.jpg</li>
+      <li>Follows the Omarchy theme when available</li>
+    </ul>
+  </description>
+  <launchable type="desktop-id">io.github.padou_dev.Ichnos.desktop</launchable>
+  <url type="homepage">https://github.com/padou-dev/ichnos</url>
+  <url type="bugtracker">https://github.com/padou-dev/ichnos/issues</url>
+  <provides>
+    <binary>ichnos</binary>
+  </provides>
+  <content_rating type="oars-1.1"/>
+  <releases>
+    <release version="0.1.0" date="2026-10-21">
+      <description>
+        <p>First release.</p>
+      </description>
+    </release>
+  </releases>
+</component>

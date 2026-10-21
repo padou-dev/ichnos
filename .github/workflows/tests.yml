@@ -1,0 +1,22 @@
+name: Tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  arch-linux:
+    runs-on: ubuntu-latest
+    container: archlinux:latest
+    steps:
+      - name: Install dependencies
+        run: pacman -Syu --noconfirm --needed git python pyside6 perl-image-exiftool python-pytest python-build python-installer python-setuptools python-wheel
+      - uses: actions/checkout@v4
+      - name: Run tests
+        run: python -m pytest -v
+      - name: Build the package
+        run: python -m build --wheel --no-isolation
+      - name: Check the command line works
+        run: |
+          python -m ichnos --version
+          python -m ichnos strip --dry-run tests/data/plain.jpg

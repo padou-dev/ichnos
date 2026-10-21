@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=Ichnos
+GenericName=Photo Metadata Cleaner
+Comment=View, edit and remove photo metadata, safely
+Exec=ichnos %F
+Icon=io.github.padou_dev.Ichnos
+Terminal=false
+Categories=Graphics;Photography;Utility;Qt;
+Keywords=exif;metadata;gps;location;privacy;strip;photo;
+MimeType=image/jpeg;image/png;image/webp;image/heic;image/heif;image/avif;image/tiff;image/x-adobe-dng;image/x-canon-cr2;image/x-canon-cr3;image/x-nikon-nef;image/x-sony-arw;image/x-fuji-raf;image/x-panasonic-rw2;image/x-olympus-orf;
+StartupNotify=true
+StartupWMClass=io.github.padou_dev.Ichnos

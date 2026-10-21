@@ -1,0 +1,99 @@
+.\" SPDX-License-Identifier: GPL-3.0-or-later
+.TH ICHNOS 1 "2026-10-21" "ichnos 0.1.0" "User Commands"
+.SH NAME
+ichnos \- view, edit and remove photo metadata, safely
+.SH SYNOPSIS
+.B ichnos
+.RI [ FILE ...]
+.br
+.B ichnos show
+.RB [ \-a ]
+.RB [ \-r ]
+.IR FILE ...
+.br
+.B ichnos strip
+.RB [ \-p
+.IR PRESET ]
+.RB [ \-o
+.IR DIR ]
+.RB [ \-s
+.IR SUFFIX ]
+.RB [ \-n ]
+.RB [ \-r ]
+.IR FILE ...
+.br
+.B ichnos presets
+.SH DESCRIPTION
+.B ichnos
+shows the metadata stored in photos (EXIF, GPS, XMP, IPTC, maker notes, PNG
+text) and writes cleaned copies with the tags you choose removed. Original
+files are never modified and existing files are never overwritten. Each copy
+is read back after writing to check that every requested change was made.
+.PP
+Without a command,
+.B ichnos
+opens the graphical application with the given files or folders.
+.SH COMMANDS
+.TP
+.B show
+List the metadata in each file. Tags that reveal location, personal details or
+device identifiers are marked.
+.B \-a
+also lists file-system details and values exiftool calculates.
+.TP
+.B strip
+Write a cleaned copy of each file, named
+.IR name _clean. ext
+next to the original.
+.TP
+.B presets
+Describe the presets.
+.SH OPTIONS
+.TP
+.BI \-p " PRESET" "\fR, \fP\-\-preset " PRESET
+.B location
+removes GPS and place names.
+.B share\-safe
+(the default) also removes personal details, serial numbers, thumbnails, maker
+notes and edit history.
+.B strip\-all
+removes all metadata except what the image needs to display correctly.
+.TP
+.BI \-o " DIR" "\fR, \fP\-\-output\-dir " DIR
+Write copies into
+.I DIR
+instead of next to the originals.
+.TP
+.BI \-s " SUFFIX" "\fR, \fP\-\-suffix " SUFFIX
+Text added to copy names (default:
+.BR _clean ).
+.TP
+.BR \-n ", " \-\-dry\-run
+Show what would be removed without writing anything.
+.TP
+.BR \-r ", " \-\-recursive
+Look inside subfolders.
+.TP
+.B \-\-version
+Print the version.
+.SH EXIT STATUS
+0 if every file was handled, 1 if a file could not be read or written or a copy
+could not be fully cleaned, 2 if exiftool is missing.
+.SH ENVIRONMENT
+.TP
+.B ICHNOS_EXIFTOOL
+Full path of the exiftool program to use.
+.TP
+.B ICHNOS_THEME_DIR
+Folder to read theme colours from, instead of the active Omarchy theme.
+.SH EXAMPLES
+.TP
+.B ichnos strip \-\-preset location ~/Pictures/trip/*.jpg
+Remove location from a set of photos.
+.TP
+.B ichnos strip \-n holiday.jpg
+See what share\-safe would remove from one photo.
+.SH SEE ALSO
+.BR exiftool (1)
+.SH AUTHOR
+p@nos <padou.dev@proton.me>
